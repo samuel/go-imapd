@@ -306,6 +306,7 @@ func (s *session) serve() {
 							case "UIDVALIDITY":
 								s.sendf("UIDVALIDITY %d", info.UidValidity)
 							case "UNSEEN":
+								// Number of messages which do not have the \Seen flag set.
 								s.sendf("UNSEEN %d", info.Unseen)
 							}
 						}
@@ -335,7 +336,7 @@ func (s *session) serve() {
 						s.sendlinef(`* OK [PERMANENTFLAGS (\Answered \Flagged \Draft \Deleted \Seen \*)]`)
 						s.sendlinef(`* OK [UIDVALIDITY %d]`, info.UidValidity)
 						s.sendlinef(`* OK [UIDNEXT %d]`, info.NextUid)
-						// s.sendlinef("* OK [UNSEEN %d]", info.Unseen)
+						// s.sendlinef("* OK [UNSEEN %d]", ...) // The message sequence number of the first unseen message in the mailbox.
 						s.sendlinef("* %d EXISTS", info.Exists)
 						s.sendlinef("* %d RECENT", info.Recent)
 						s.sendlinef("%s OK [READ-WRITE] Completed", tag)
