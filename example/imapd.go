@@ -2,7 +2,7 @@ package main
 
 import (
 	// "fmt"
-	// "crypto/tls"
+	"crypto/tls"
 	"log"
 	"strings"
 	"time"
@@ -69,20 +69,20 @@ func (b *TestBackend) Mailbox(name string) (imapd.Mailbox, error) {
 }
 
 func main() {
-	// cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
+	if err != nil {
+		panic(err)
+	}
 
 	im := &imapd.Server{
 		Addr:          ":1143",
 		InsecureLogin: true,
 		Backend:       &TestBackend{},
-		// TlsConfig: &tls.Config{
-		// 	Certificates: []tls.Certificate{cert},
-		// 	ClientAuth:   tls.VerifyClientCertIfGiven,
-		// 	ServerName:   "example.com",
-		// },
+		TlsConfig: &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			ClientAuth:   tls.VerifyClientCertIfGiven,
+			ServerName:   "example.com",
+		},
 	}
-	log.Fatal(im.ListenAndServe())
+	log.Fatal(im.ListenAndServeTLS())
 }

@@ -29,6 +29,7 @@ type MailboxInfo struct {
 	UidValidity uint32
 	Exists      uint32
 	Recent      uint32
+	Unseen      uint32
 	// Flags []string
 }
 

@@ -47,7 +47,10 @@ const (
 
 const (
 	internalDateFormat = "02-Jan-2006 15:04:05 -0700"
-	envelopeFields     = []string{
+)
+
+var (
+	envelopeFields = []string{
 		"Date",
 		"Subject",
 		"From", // personal name, SMTP at-domain-list (source route), mailbox name, host name
@@ -270,6 +273,46 @@ func (s *session) serve() {
 		case "logout":
 			s.sendlinef("* BYE LOGOUT Requested")
 			s.sendlinef("%s OK %d good day (Success)", tag, 0)
+		case "status": // 6.3.10 - STATUS [mailbox name] ([status data item names])
+			if len(args) < 2 {
+				s.sendlinef("%s BAD Missing mailbox and item names", tag)
+			} else {
+				mb, err := s.srv.Backend.Mailbox(args[0])
+				if err != nil {
+					if err == ErrUnknownMailbox {
+						s.sendlinef("%s NO unknown mailbox", tag)
+					} else {
+						s.errorf("Error selecting mailbox %s: %+v", args[0], err)
+						s.sendlinef("%s NO internal error", tag)
+					}
+				} else {
+					info, err := mb.Info()
+					if err != nil {
+						s.errorf("Error getting info for mailbox %s: %+v", args[0], err)
+						s.sendlinef("%s NO internal error", tag)
+					} else {
+						s.sendf("* STATUS %s (", args[0])
+						for i, it := range strings.Split(args[1][1:len(args[1])-1], " ") {
+							if i != 0 {
+								s.sendf(" ")
+							}
+							switch strings.ToUpper(it) {
+							case "MESSAGES":
+								s.sendf("MESSAGES %d", info.Exists)
+							case "RECENT":
+								s.sendf("RECENT %d", info.Recent)
+							case "UIDNEXT":
+								s.sendf("UIDNEXT %d", info.NextUid)
+							case "UIDVALIDITY":
+								s.sendf("UIDVALIDITY %d", info.UidValidity)
+							case "UNSEEN":
+								s.sendf("UNSEEN %d", info.Unseen)
+							}
+						}
+						s.sendlinef(")")
+					}
+				}
+			}
 		case "select": // 6.3.1 - SELECT [mailbox name]
 			if len(args) < 1 {
 				s.sendlinef("%s BAD Missing mailbox name", tag)
@@ -292,9 +335,9 @@ func (s *session) serve() {
 						s.sendlinef(`* OK [PERMANENTFLAGS (\Answered \Flagged \Draft \Deleted \Seen \*)]`)
 						s.sendlinef(`* OK [UIDVALIDITY %d]`, info.UidValidity)
 						s.sendlinef(`* OK [UIDNEXT %d]`, info.NextUid)
+						// s.sendlinef("* OK [UNSEEN %d]", info.Unseen)
 						s.sendlinef("* %d EXISTS", info.Exists)
 						s.sendlinef("* %d RECENT", info.Recent)
-						// * OK [UNSEEN 0]
 						s.sendlinef("%s OK [READ-WRITE] Completed", tag)
 					}
 				}
